@@ -1,8 +1,7 @@
 #include <windows.h>
 #include <iostream>
 #include <vector>
-#include "marker.h"
-
+#include "../include/marker.h"
 void printArray(int* array, int size){
     for(int i = 0; i < size; ++i){
         std::cout << array[i] << " ";
@@ -45,6 +44,7 @@ int main(){
 
     std::vector<HANDLE> threads(threadCount);
     std::vector<ThreadData> data(threadCount);
+    std::vector<bool> isActive(threadCount);
 
     std::vector<HANDLE> cannotContinueEvents(threadCount);
     std::vector<HANDLE> stopEvents(threadCount);
@@ -54,6 +54,7 @@ int main(){
         cannotContinueEvents[i] = CreateEvent(NULL, TRUE, FALSE, NULL);
         stopEvents[i] = CreateEvent(NULL, TRUE, FALSE, NULL);
         continueEvents[i] = CreateEvent(NULL, TRUE, FALSE, NULL);
+        isActive[i] = true;
 
         data[i] = {
             i + 1,
@@ -80,19 +81,33 @@ int main(){
     int activeThreads = threadCount;
 
     while (activeThreads > 0) {
-        WaitForMultipleObjects(activeThreads, cannotContinueEvents.data(), TRUE, INFINITE);
+        std::vector<HANDLE> activeEvents;
+
+        for(int i = 0; i < threadCount; ++i){
+            if(isActive[i]){
+                activeEvents.push_back(cannotContinueEvents[i]);
+            }
+        }
+
+        WaitForMultipleObjects(activeEvents.size(), activeEvents.data(), TRUE, INFINITE);
 
         std::cout << "Array:\n";
         printArray(array, size);
 
         int id;
-        std::cout << "Stop thread id: ";
-        std::cin >> id;
-
-        while(id < 1 || id > threadCount){
-            std::cerr << "Invalid thread id. Try again\n\n";
+        while(true){
             std::cout << "Stop thread id: ";
             std::cin >> id;
+
+            if(id < 1 || id > threadCount){
+                std::cerr << "Invalid thread id. Try again\n";
+            }
+            else if(!isActive[id - 1]){
+                std::cerr << "Thread is already stopped. Try again\n";
+            }
+            else{
+                break;
+            }
         }
 
         SetEvent(stopEvents[id - 1]);
@@ -101,7 +116,8 @@ int main(){
 
         std::cout << "After stopping:\n";
         printArray(array, size);
-
+        
+        isActive[id - 1] = false;
         activeThreads--;
 
         for(int i = 0; i < threadCount; ++i){

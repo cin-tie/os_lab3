@@ -52,6 +52,11 @@ DWORD WINAPI markerThread(LPVOID param){
 
                 return 0;
             }
+            else if(res == WAIT_OBJECT_0 + 1){
+                ResetEvent(threadData->cannotContinueEvent);
+                ResetEvent(threadData->continueEvent);
+                continue;
+            }
         }
     }
 }
