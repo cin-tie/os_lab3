@@ -14,11 +14,7 @@ DWORD WINAPI markerThread(LPVOID param){
         EnterCriticalSection(threadData->cs);
 
         if(threadData->array[index] == 0){
-            LeaveCriticalSection(threadData->cs);
-
             Sleep(5);
-
-            EnterCriticalSection(threadData->cs);
 
             threadData->array[index] = threadData->id;
             threadData->markedCount++;
